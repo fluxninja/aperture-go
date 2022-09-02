@@ -1,7 +1,7 @@
 package aperture
 
 import (
-	flowcontrolproto "go.buf.build/grpc/go/fluxninja/aperture/flowcontrol/v1"
+	flowcontrolproto "go.buf.build/grpc/go/fluxninja/aperture/aperture/flowcontrol/v1"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
