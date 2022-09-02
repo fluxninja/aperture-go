@@ -17,7 +17,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	flowcontrolgrpc "go.buf.build/grpc/go/fluxninja/aperture/flowcontrol/v1"
+	flowcontrolgrpc "go.buf.build/grpc/go/fluxninja/aperture/aperture/flowcontrol/v1"
 )
 
 // Code is an 32-bit representation of a status state.
