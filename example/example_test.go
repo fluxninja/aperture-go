@@ -1,12 +1,12 @@
-package main
+package main_test
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"net/http"
 	"time"
 
+	aperture "github.com/fluxninja/aperture-go/sdk"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -15,8 +15,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials/insecure"
-
-	aperture "github.com/fluxninja/aperture-go/sdk"
 )
 
 // app struct contains the server and the Aperture client.
@@ -25,7 +23,8 @@ type app struct {
 	apertureClient aperture.Client
 }
 
-func main() {
+// This is an example of how the Aperture client can be used in a Go application. However, multiple ways of using the client are possible.
+func Example() {
 	ctx := context.Background()
 	client, err := grpcClient(ctx, "localhost:50051")
 	if err != nil {
@@ -35,19 +34,21 @@ func main() {
 	// Client can set a tracer provider for their purposes.
 	setExporterAndTracerProvider()
 
+	// checkTimeout is the time that the client will wait for a response from the Flow Control Service.
+	// if not provided, the default value value of 200 milliseconds will be used.
 	options := aperture.Options{
 		ClientConn:   client,
 		CheckTimeout: 200 * time.Millisecond,
 		Ctx:          ctx,
 	}
 
-	// initialize Aperture Client and pass the config that needs to be loaded.
+	// initialize Aperture Client with the provided options.
 	apertureClient, err := aperture.NewClient(options)
 	if err != nil {
 		log.Fatalf("failed to create client: %v", err)
 	}
 
-	// Create a server with passing it the Aperture client
+	// Create a server with passing it the Aperture client.
 	mux := http.NewServeMux()
 	a := app{
 		server: &http.Server{
@@ -67,30 +68,28 @@ func main() {
 
 // handleFeature is a handler function where all the work from the user is executed.
 func (a app) handleFeature(w http.ResponseWriter, r *http.Request) {
-	// keep empty when connection is successful, otherwise implement with error message description.
-	errMessage := ""
 	ctx := context.Background()
 
 	// do some business logic to collect labels
 	labels := map[string]string{
 		"user": "kenobi",
 	}
-
-	flow, err := a.apertureClient.Check(ctx, "awesomeFeature", labels)
+	// BeginFlow performs a flowcontrolv1.Check call to Aperture Agent. It returns a Flow and an error if any.
+	flow, err := a.apertureClient.BeginFlow(ctx, "awesomeFeature", labels)
 	if err != nil {
-		errMessage = err.Error()
+		log.Printf("Aperture flow control got error. Returned flow defaults to Allowed. flow.Accepted(): %t", flow.Accepted())
 	}
 
+	// See whether flow was accepted by Aperture Agent.
 	if flow.Accepted() {
 		// Simulate work being done
 		time.Sleep(5 * time.Second)
+		// Need to call End on the Flow in order to provide telemetry to Aperture Agent for completing the control loop. The first argument catpures whether the feature captured by the Flow was successful or resulted in an error. The second argument is error message for further diagnosis.
+		flow.End(aperture.Ok, "")
 	} else {
-		_, err := json.Marshal(flow.CheckResponse())
-		if err != nil {
-			errMessage = err.Error()
-		}
+		// Flow has been rejected by Aperture Agent.
+		flow.End(aperture.Error, "flow rejected by aperture")
 	}
-	flow.End(aperture.OK, errMessage)
 }
 
 func setExporterAndTracerProvider() {
@@ -122,6 +121,7 @@ func setExporterAndTracerProvider() {
 
 // grpcClient creates a new gRPC client that will be passed in order to initialize the Aperture client.
 func grpcClient(ctx context.Context, address string) (*grpc.ClientConn, error) {
+	// creating a grpc client connection is essential to allow the Aperture client to communicate with the Flow Control Service.
 	var grpcDialOptions []grpc.DialOption
 	grpcDialOptions = append(grpcDialOptions, grpc.WithConnectParams(grpc.ConnectParams{
 		Backoff:           backoff.DefaultConfig,
