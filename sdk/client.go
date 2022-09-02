@@ -7,7 +7,6 @@ import (
 	"runtime"
 	"time"
 
-	flowcontrolv1 "github.com/fluxninja/aperture/api/gen/proto/go/aperture/flowcontrol/v1"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/baggage"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -17,11 +16,13 @@ import (
 	oteltrace "go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+
+	flowcontrolv1 "github.com/fluxninja/aperture/api/gen/proto/go/aperture/flowcontrol/v1"
 )
 
 const (
-	// Ok and Error indicate feature execution. User will have to pass one of the two values when ending a flow.
-	Ok    Code = 0
+	// OK and Error indicate feature execution. User will have to pass one of the two values when ending a flow.
+	OK    Code = 0
 	Error Code = 1
 
 	clientIPHeaderName = "client-ip"
@@ -38,8 +39,8 @@ const (
 // Code is an 32-bit representation of a status state.
 type Code uint32
 
-// ApertureClient is the interface that is provided to the user upon which they can perform Check calls for their service and eventually shut down in case of error.
-type ApertureClient interface {
+// Client is the interface that is provided to the user upon which they can perform Check calls for their service and eventually shut down in case of error.
+type Client interface {
 	Check(ctx context.Context, feature string, labels map[string]string) (Flow, error)
 }
 
@@ -50,16 +51,16 @@ type apertureClient struct {
 	tracerProvider    *trace.TracerProvider
 }
 
-// Options that the user can pass to Aperture in order to receive a new ApertureClient. ClientConn and Ctx are required.
+// Options that the user can pass to Aperture in order to receive a new Client. ClientConn and Ctx are required.
 type Options struct {
 	ClientConn   *grpc.ClientConn
 	CheckTimeout time.Duration
 	Ctx          context.Context
 }
 
-// NewApertureClient returns a new ApertureClient that can be used to perform Check calls.
+// NewClient returns a new Client that can be used to perform Check calls.
 // The user will pass in options which will be used to create a connection with otel and a tracerProvider retrieved from such connection.
-func NewApertureClient(options Options) (ApertureClient, error) {
+func NewClient(options Options) (Client, error) {
 	var timeout time.Duration
 	flowControlClient := flowcontrolv1.NewFlowControlServiceClient(options.ClientConn)
 
