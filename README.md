@@ -1,7 +1,5 @@
 # Aperture-Go SDK
 
-Aperture-Go
-
 ## Aperture-Go SDK provides APIs to interact with Aperture Agent. These APIs enable flow control functionality on fine-grained features inside service code.
 
 ### ApertureClient Interface
