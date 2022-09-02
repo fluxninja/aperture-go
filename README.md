@@ -35,12 +35,14 @@ A `Flow` is created every time a `ApertureClient.BeginFlow` is called.
 	if flow.Accepted() {
 		// Simulation of work that client would do if the feature is enabled.
 		time.Sleep(5 * time.Second)
+		// Need to call End on the Flow in order to provide telemetry to Aperture Agent for completing the control loop. The first argument catpures whether the feature captured by the Flow was successful or resulted in an error. The second argument is error message for further diagnosis.
+		flow.End(aperture.Ok, "")
 	} else {
-		// Flow has been rejected by Aperture Agent, return appropriate response to caller of this feature
+		// Flow has been rejected by Aperture Agent
 		log.Info("Flow rejected by Aperture Agent")
+		flow.End(aperture.Error, "flow rejected by aperture")
 	}
-	// Need to call End on the Flow in order to provide telemetry to Aperture Agent for completing the control loop. The first argument catpures whether the feature captured by the Flow was successful or resulted an error. The second argument is error message for further diagnosis.
-	flow.End(aperture.Ok, "")
+	
 ```
 
 ## 🔗 Links to relevant Aperture Resources:
