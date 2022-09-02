@@ -9,14 +9,13 @@ Aperture-Go
 An `ApertureClient` maintains a grpc connection with ApertureAgent.
 
 ### Usage/Examples
-
-https://github.com/fluxninja/aperture-go/blob/338285aee70b0f905282906dec864088b1d64a63/example/example_test.go#L39-L46
+https://github.com/fluxninja/aperture-go/blob/465f7be06869a534a8495f7a119c5574088611ab/example/example_test.go#L39-L46
 
 ### Flow Interface
 
 A `Flow` is created every time a `ApertureClient.BeginFlow` is called.
 
-https://github.com/fluxninja/aperture-go/blob/338285aee70b0f905282906dec864088b1d64a63/example/example_test.go#L77-L92
+https://github.com/fluxninja/aperture-go/blob/465f7be06869a534a8495f7a119c5574088611ab/example/example_test.go#L77-L92
 
 ## 🔗 Links to relevant Aperture Resources:
 
