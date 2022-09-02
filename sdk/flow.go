@@ -1,8 +1,6 @@
 package aperture
 
 import (
-	"time"
-
 	flowcontrolproto "go.buf.build/grpc/go/fluxninja/aperture/flowcontrol/v1"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -18,14 +16,13 @@ type Flow interface {
 }
 
 type flow struct {
-	checkResponse   *flowcontrolproto.CheckResponse
-	fcsLatencyStart time.Time
-	clientIP        string
-	span            trace.Span
+	checkResponse *flowcontrolproto.CheckResponse
+	clientIP      string
+	span          trace.Span
 }
 
 // Accepted returns the state of the connection with the server.
-// ApertureClient is a faile-to-wire system so it will return true even if the connenction did not happen.
+// ApertureClient is a fail-to-wire system so it will return true even if the connection did not happen.
 func (f *flow) Accepted() bool {
 	if f.checkResponse == nil {
 		return true
@@ -44,7 +41,7 @@ func (f *flow) CheckResponse() *flowcontrolproto.CheckResponse {
 // End is used to end the flow, the user will have to pass a status code and an error description which will define the state and result of the flow.
 func (f *flow) End(statusCode Code, errDescription string) {
 	defer f.span.End()
-	if statusCode == Ok {
+	if statusCode == OK {
 		f.span.SetStatus(codes.Ok, errDescription)
 	} else {
 		f.span.SetStatus(codes.Error, errDescription)

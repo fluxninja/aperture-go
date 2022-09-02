@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"net/http"
 	"time"
@@ -68,7 +67,6 @@ func main() {
 // handleFeature is a handler function where all the work from the user is executed.
 func (a app) handleFeature(w http.ResponseWriter, r *http.Request) {
 	// keep empty when connection is successful, otherwise implement with error message description.
-	errMessage := ""
 	ctx := context.Background()
 
 	// do some business logic to collect labels
@@ -76,21 +74,23 @@ func (a app) handleFeature(w http.ResponseWriter, r *http.Request) {
 		"user": "kenobi",
 	}
 
-	flow, err := a.apertureClient.Check(ctx, "awesomeFeature", labels)
+	// BeginFlow performs a flowcontrolv1.Check call to Aperture Agent. It returns a Flow and an error if any.
+	flow, err := a.apertureClient.BeginFlow(ctx, "awesomeFeature", labels)
 	if err != nil {
-		errMessage = err.Error()
+		log.Printf("Aperture flow control got error. Returned flow defaults to Allowed. flow.Accepted(): %t", flow.Accepted())
 	}
 
+	// See whether flow was accepted by Aperture Agent.
 	if flow.Accepted() {
 		// Simulate work being done
 		time.Sleep(5 * time.Second)
 	} else {
-		_, err := json.Marshal(flow.CheckResponse())
-		if err != nil {
-			errMessage = err.Error()
-		}
+		// Flow has been rejected by Aperture Agent, return appropriate response to caller of this feature
+		log.Printf("Flow rejected by Aperture Agent.")
 	}
-	flow.End(aperture.OK, errMessage)
+
+	// Need to call End on the Flow in order to provide telemetry to Aperture Agent for completing the control loop. The first argument catpures whether the feature captured by the Flow was successful or resulted an error. The second argument is error message for further diagnosis.
+	flow.End(aperture.OK, "")
 }
 
 func setExporterAndTracerProvider() {
