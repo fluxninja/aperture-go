@@ -4,13 +4,12 @@ import (
 	"time"
 
 	flowcontrolv1 "github.com/fluxninja/aperture/api/gen/proto/go/aperture/flowcontrol/v1"
-	otel "github.com/fluxninja/aperture/pkg/otelcollector"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
 
-// Flows is the interface that is returned to the user everytime a check call is performed.
+// Flows is the interface that is returned to the user everytime a Check call through ApertureClient is made.
 // The user can check the status of the check call, the response from the server and once the feature is executed, end the flow.
 type Flow interface {
 	Accepted() bool
@@ -42,15 +41,19 @@ func (f *flow) CheckResponse() *flowcontrolv1.CheckResponse {
 	return f.checkResponse
 }
 
-// End is used to end the flow, the user will have to pass a status code and an error description which will be used to investigate the response in case of failure.
+// End is used to end the flow, the user will have to pass a status code and an error description which will define the state and result of the flow.
 func (f *flow) End(statusCode Code, errDescription string) {
 	defer f.span.End()
-	f.span.SetStatus(codes.Ok, errDescription) // Find a way to pass statusCode instead of codes.Ok
+	if statusCode == Ok {
+		f.span.SetStatus(codes.Ok, errDescription)
+	} else {
+		f.span.SetStatus(codes.Error, errDescription)
+	}
 	f.span.SetAttributes(
-		attribute.String(otel.FeatureAddressLabel, f.clientIP),
-		attribute.String(otel.MarshalledCheckResponseLabel, asString(f.checkResponse)),
+		attribute.String(FeatureAddressLabel, f.clientIP),
+		attribute.String(MarshalledCheckResponseLabel, asString(f.checkResponse)),
 	)
 	if errDescription != "" {
-		f.span.SetAttributes(attribute.String(otel.DecisionErrorReasonLabel, errDescription))
+		f.span.SetAttributes(attribute.String(DecisionErrorReasonLabel, errDescription))
 	}
 }

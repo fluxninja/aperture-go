@@ -19,22 +19,6 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-const (
-	// Ok and Error indicate feature execution. User will have to pass one of the two values when ending a flow.
-	Ok    Code = 0
-	Error Code = 1
-
-	clientIPHeaderName = "client-ip"
-
-	// Library name and version can be used by the user to create a resource that connects to telemetry expoert.
-	LibraryName    = "aperture-go"
-	LibraryVersion = "v0.1.0"
-
-	defaultRPCTimeout = 200 * time.Millisecond
-
-	defaultGRPCReconnectionTime = 10 * time.Second
-)
-
 // Code is an 32-bit representation of a status state.
 type Code uint32
 
@@ -50,7 +34,7 @@ type apertureClient struct {
 	tracerProvider    *trace.TracerProvider
 }
 
-// Options that the user can pass to Aperture in order to receive a new ApertureClient. ClientConn and Ctx are required.
+// Options contains fields that are used to create an ApertureClient instance. ClientConn and Ctx are required.
 type Options struct {
 	ClientConn   *grpc.ClientConn
 	CheckTimeout time.Duration
@@ -58,7 +42,7 @@ type Options struct {
 }
 
 // NewApertureClient returns a new ApertureClient that can be used to perform Check calls.
-// The user will pass in options which will be used to create a connection with otel and a tracerProvider retrieved from such connection.
+// The user will pass in options which will be used to create a grpc connection.
 func NewApertureClient(options Options) (ApertureClient, error) {
 	var timeout time.Duration
 	flowControlClient := flowcontrolv1.NewFlowControlServiceClient(options.ClientConn)
@@ -120,7 +104,7 @@ func (apc *apertureClient) Check(ctx context.Context, feature string, labels map
 
 	req := &flowcontrolv1.CheckRequest{
 		Feature: feature,
-		Labels:  labels,
+		Labels:  overiddenLabels,
 	}
 
 	var header metadata.MD
