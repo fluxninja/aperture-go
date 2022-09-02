@@ -10,40 +10,13 @@ An `ApertureClient` maintains a grpc connection with ApertureAgent.
 
 ### Usage/Examples
 
-```golang
-	options := aperture.Options{
-		ClientConn:   client,
-		CheckTimeout: 200 * time.Millisecond,
-		Ctx:          ctx,
-	}
-
-	client, err := aperture.NewClient(options)
-```
+https://github.com/fluxninja/aperture-go/blob/338285aee70b0f905282906dec864088b1d64a63/example/example_test.go#L39-L46
 
 ### Flow Interface
 
 A `Flow` is created every time a `ApertureClient.BeginFlow` is called.
 
-```golang
-	// BeginFlow performs a flowcontrolv1.Check call to Aperture Agent. It returns a Flow and an error if any.
-	flow, err := a.apertureClient.BeginFlow(ctx, "awesomeFeature", labels)
-    	if err != nil {
-		log.Warn("Aperture flow control got error. Returned flow defaults to Allowed. flow.Accepted(): %t", flow.Accepted())
-	}
-
-	// See whether flow was accepted by Aperture Agent
-	if flow.Accepted() {
-		// Simulation of work that client would do if the feature is enabled.
-		time.Sleep(5 * time.Second)
-		// Need to call End on the Flow in order to provide telemetry to Aperture Agent for completing the control loop. The first argument catpures whether the feature captured by the Flow was successful or resulted in an error. The second argument is error message for further diagnosis.
-		flow.End(aperture.Ok, "")
-	} else {
-		// Flow has been rejected by Aperture Agent
-		log.Info("Flow rejected by Aperture Agent")
-		flow.End(aperture.Error, "flow rejected by aperture")
-	}
-	
-```
+https://github.com/fluxninja/aperture-go/blob/338285aee70b0f905282906dec864088b1d64a63/example/example_test.go#L77-L92
 
 ## 🔗 Links to relevant Aperture Resources:
 

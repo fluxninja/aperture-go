@@ -7,7 +7,7 @@ import (
 const (
 
 	// Ok and Error indicate feature execution. User will have to pass one of the two values when ending a flow.
-	OK    Code = 0
+	Ok    Code = 0
 	Error Code = 1
 
 	clientIPHeaderName = "client-ip"
