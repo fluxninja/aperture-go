@@ -17,4 +17,4 @@ https://github.com/fluxninja/aperture-go/blob/465f7be06869a534a8495f7a119c557408
 
 ## 🔗 Relevant Resources:
 
-[![Github] Aperture GitHub: (https://github.com/fluxninja/aperture)
+Aperture GitHub: (https://github.com/fluxninja/aperture)
