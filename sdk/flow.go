@@ -3,7 +3,7 @@ package aperture
 import (
 	"time"
 
-	flowcontrolv1 "github.com/fluxninja/aperture/api/gen/proto/go/aperture/flowcontrol/v1"
+	flowcontrolproto "go.buf.build/grpc/go/fluxninja/aperture/flowcontrol/v1"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -14,11 +14,11 @@ import (
 type Flow interface {
 	Accepted() bool
 	End(statusCode Code, errDescription string)
-	CheckResponse() *flowcontrolv1.CheckResponse
+	CheckResponse() *flowcontrolproto.CheckResponse
 }
 
 type flow struct {
-	checkResponse   *flowcontrolv1.CheckResponse
+	checkResponse   *flowcontrolproto.CheckResponse
 	fcsLatencyStart time.Time
 	clientIP        string
 	span            trace.Span
@@ -30,14 +30,14 @@ func (f *flow) Accepted() bool {
 	if f.checkResponse == nil {
 		return true
 	}
-	if f.checkResponse.DecisionType == flowcontrolv1.DecisionType_DECISION_TYPE_ACCEPTED {
+	if f.checkResponse.DecisionType == flowcontrolproto.DecisionType_DECISION_TYPE_ACCEPTED {
 		return true
 	}
 	return false
 }
 
 // CheckResponse returns the response from the server.
-func (f *flow) CheckResponse() *flowcontrolv1.CheckResponse {
+func (f *flow) CheckResponse() *flowcontrolproto.CheckResponse {
 	return f.checkResponse
 }
 

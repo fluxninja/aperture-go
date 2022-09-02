@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	aperture "github.com/fluxninja/aperture-go/sdk"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -16,12 +15,14 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials/insecure"
+
+	aperture "github.com/fluxninja/aperture-go/sdk"
 )
 
 // app struct contains the server and the Aperture client.
 type app struct {
 	server         *http.Server
-	apertureClient aperture.ApertureClient
+	apertureClient aperture.Client
 }
 
 func main() {
@@ -41,7 +42,7 @@ func main() {
 	}
 
 	// initialize Aperture Client and pass the config that needs to be loaded.
-	apertureClient, err := aperture.NewApertureClient(options)
+	apertureClient, err := aperture.NewClient(options)
 	if err != nil {
 		log.Fatalf("failed to create client: %v", err)
 	}
@@ -89,7 +90,7 @@ func (a app) handleFeature(w http.ResponseWriter, r *http.Request) {
 			errMessage = err.Error()
 		}
 	}
-	flow.End(aperture.Ok, errMessage)
+	flow.End(aperture.OK, errMessage)
 }
 
 func setExporterAndTracerProvider() {
