@@ -3,8 +3,7 @@ package aperture
 import (
 	"time"
 
-	flowcontrolv1 "github.com/fluxninja/aperture/api/gen/proto/go/aperture/flowcontrol/v1"
-	otel "github.com/fluxninja/aperture/pkg/otelcollector"
+	flowcontrolproto "go.buf.build/grpc/go/fluxninja/aperture/flowcontrol/v1"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -15,11 +14,11 @@ import (
 type Flow interface {
 	Accepted() bool
 	End(statusCode Code, errDescription string)
-	CheckResponse() *flowcontrolv1.CheckResponse
+	CheckResponse() *flowcontrolproto.CheckResponse
 }
 
 type flow struct {
-	checkResponse   *flowcontrolv1.CheckResponse
+	checkResponse   *flowcontrolproto.CheckResponse
 	fcsLatencyStart time.Time
 	clientIP        string
 	span            trace.Span
@@ -31,14 +30,14 @@ func (f *flow) Accepted() bool {
 	if f.checkResponse == nil {
 		return true
 	}
-	if f.checkResponse.DecisionType == flowcontrolv1.DecisionType_DECISION_TYPE_ACCEPTED {
+	if f.checkResponse.DecisionType == flowcontrolproto.DecisionType_DECISION_TYPE_ACCEPTED {
 		return true
 	}
 	return false
 }
 
 // CheckResponse returns the response from the server.
-func (f *flow) CheckResponse() *flowcontrolv1.CheckResponse {
+func (f *flow) CheckResponse() *flowcontrolproto.CheckResponse {
 	return f.checkResponse
 }
 
@@ -47,10 +46,10 @@ func (f *flow) End(statusCode Code, errDescription string) {
 	defer f.span.End()
 	f.span.SetStatus(codes.Ok, errDescription) // Find a way to pass statusCode instead of codes.Ok
 	f.span.SetAttributes(
-		attribute.String(otel.FeatureAddressLabel, f.clientIP),
-		attribute.String(otel.MarshalledCheckResponseLabel, asString(f.checkResponse)),
+		attribute.String(FeatureAddressLabel, f.clientIP),
+		attribute.String(MarshalledCheckResponseLabel, asString(f.checkResponse)),
 	)
 	if errDescription != "" {
-		f.span.SetAttributes(attribute.String(otel.DecisionErrorReasonLabel, errDescription))
+		f.span.SetAttributes(attribute.String(DecisionErrorReasonLabel, errDescription))
 	}
 }
