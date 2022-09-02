@@ -17,23 +17,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	flowcontrolv1 "github.com/fluxninja/aperture/api/gen/proto/go/aperture/flowcontrol/v1"
-)
-
-const (
-	// OK and Error indicate feature execution. User will have to pass one of the two values when ending a flow.
-	OK    Code = 0
-	Error Code = 1
-
-	clientIPHeaderName = "client-ip"
-
-	// Library name and version can be used by the user to create a resource that connects to telemetry expoert.
-	LibraryName    = "aperture-go"
-	LibraryVersion = "v0.1.0"
-
-	defaultRPCTimeout = 200 * time.Millisecond
-
-	defaultGRPCReconnectionTime = 10 * time.Second
+	flowcontrolgrpc "go.buf.build/grpc/go/fluxninja/aperture/flowcontrol/v1"
 )
 
 // Code is an 32-bit representation of a status state.
@@ -45,7 +29,7 @@ type Client interface {
 }
 
 type apertureClient struct {
-	flowControlClient flowcontrolv1.FlowControlServiceClient
+	flowControlClient flowcontrolgrpc.FlowControlServiceClient
 	tracer            oteltrace.Tracer
 	timeout           time.Duration
 	tracerProvider    *trace.TracerProvider
@@ -62,7 +46,7 @@ type Options struct {
 // The user will pass in options which will be used to create a connection with otel and a tracerProvider retrieved from such connection.
 func NewClient(options Options) (Client, error) {
 	var timeout time.Duration
-	flowControlClient := flowcontrolv1.NewFlowControlServiceClient(options.ClientConn)
+	flowControlClient := flowcontrolgrpc.NewFlowControlServiceClient(options.ClientConn)
 
 	if options.CheckTimeout == 0 {
 		timeout = defaultRPCTimeout
@@ -119,7 +103,7 @@ func (apc *apertureClient) Check(ctx context.Context, feature string, labels map
 		overiddenLabels[key] = value
 	}
 
-	req := &flowcontrolv1.CheckRequest{
+	req := &flowcontrolgrpc.CheckRequest{
 		Feature: feature,
 		Labels:  labels,
 	}
