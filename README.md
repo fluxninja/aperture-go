@@ -1,14 +1,12 @@
-# FluxNinja's Aperture-Go SDK
+# Aperture-Go SDK
 
-Aperture library allows connection to the Flow Control Service in order to
-perfom check calls upon feature handling.
+Aperture-Go 
 
-## Aperture SDK API
+## Aperture-Go SDK provides APIs to interact with Aperture Agent. These APIs enable flow control functionality on fine-grained features inside service code.
 
 ### ApertureClient Interface
 
-Requires a grpc client connection and context for initialization. Allows
-Client's to perform check call with Flow Control Service.
+An `ApertureClient` maintains a grpc connection with ApertureAgent.
 
 ### Usage/Examples
 
@@ -24,32 +22,28 @@ Client's to perform check call with Flow Control Service.
 
 ### Flow Interface
 
-Gets created everytime a check call is made through Aperture Client.
+A `Flow` is created every time a `ApertureClient.BeginFlow` is called.
 
 ```golang
-	// Perform a check call to Flow Control Service, which will return a flow and an error if any.
-	flow, err := a.apertureClient.Check(ctx, "awesomeFeature", labels)
+	// BeginFlow performs a flowcontrolv1.Check call to Aperture Agent. It returns a Flow and an error if any.
+	flow, err := a.apertureClient.BeginFlow(ctx, "awesomeFeature", labels)
     	if err != nil {
-		errMessage = err.Error()
+		log.Warn("Aperture flow control got error. Returned flow defaults to Allowed. flow.Accepted(): %t", flow.Accepted())
 	}
 
+	// See whether flow was acceted by Aperture Agent
 	if flow.Accepted() {
 		// Simulation of work that client would do if the feature is enabled.
 		time.Sleep(5 * time.Second)
 	} else {
-		_, err := json.Marshal(flow.CheckResponse())
-		if err != nil {
-			// in case of error, record it in a string and return it to the flow.
-			errMessage = err.Error()
-		}
+		// Flow has been rejected by Aperture Agent, return appropriate response to caller of this feature
+		log.Info("Flow rejected by Aperture Agent")
 	}
-	// if the feature was correctly executed but a minor error occurred, send it when ending the flow. In case of not unsuccessflow flow send aperture.Error.
-	flow.End(aperture.Ok, errMessage)
+	// Need to call End on the Flow in order to provide telemetry to Aperture Agent for completing the control loop. The first argument catpures whether the feature captured by the Flow was successful or resulted an error. The second argument is error message for further diagnosis.
+	flow.End(aperture.Ok, "")
 ```
 
-## 🔗 Links to Aperture repo and social media
+## 🔗 Links to relevant Aperture Resources:
 
 [![Github](https://camo.githubusercontent.com/cca71357fe98ec5f8cd6ebab9044ad2901f4b64ebda379ac81608ed9f1caa1a0/68747470733a2f2f696d672e736869656c64732e696f2f7374617469632f76313f7374796c653d666f722d7468652d6261646765266d6573736167653d47697448756226636f6c6f723d313831373137266c6f676f3d476974487562266c6f676f436f6c6f723d464646464646266c6162656c3d)](https://github.com/fluxninja/aperture)
-[![linkedin](https://img.shields.io/badge/linkedin-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/company/fluxninja/mycompany/)
-[![twitter](https://img.shields.io/badge/twitter-1DA1F2?style=for-the-badge&logo=twitter&logoColor=white)](https://twitter.com/fluxninjahq?lang=en)
 
