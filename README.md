@@ -8,13 +8,13 @@ Aperture-Go SDK provides APIs to interact with Aperture Agent. These APIs enable
 
 An `ApertureClient` maintains a grpc connection with ApertureAgent.
 
-https://github.com/fluxninja/aperture-go/blob/465f7be06869a534a8495f7a119c5574088611ab/example/example_test.go#L39-L46
+https://github.com/fluxninja/aperture-go/blob/2c5414a29e2a3cbc98481383b3a7dee6ccfa596e/example/example_test.go#L39-L46
 
 ### Flow Interface
 
 A `Flow` is created every time a `ApertureClient.BeginFlow` is called.
 
-https://github.com/fluxninja/aperture-go/blob/465f7be06869a534a8495f7a119c5574088611ab/example/example_test.go#L77-L92
+https://github.com/fluxninja/aperture-go/blob/2c5414a29e2a3cbc98481383b3a7dee6ccfa596e/example/example_test.go#L77-L92
 
 ## Relevant Resources
 
