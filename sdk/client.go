@@ -2,8 +2,7 @@ package aperture
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
+	"net/url"
 	"runtime"
 	"time"
 
@@ -20,9 +19,6 @@ import (
 	flowcontrolgrpc "go.buf.build/grpc/go/fluxninja/aperture/aperture/flowcontrol/v1"
 )
 
-// Code is an 32-bit representation of a status state.
-type Code uint32
-
 // Client is the interface that is provided to the user upon which they can perform Check calls for their service and eventually shut down in case of error.
 type Client interface {
 	BeginFlow(ctx context.Context, feature string, labels map[string]string) (Flow, error)
@@ -32,29 +28,18 @@ type apertureClient struct {
 	flowControlClient flowcontrolgrpc.FlowControlServiceClient
 	tracer            oteltrace.Tracer
 	timeout           time.Duration
-	tracerProvider    *trace.TracerProvider
 }
 
 // Options that the user can pass to Aperture in order to receive a new Client. ClientConn and Ctx are required.
 type Options struct {
 	ClientConn   *grpc.ClientConn
 	CheckTimeout time.Duration
-	Ctx          context.Context
 }
 
 // NewClient returns a new Client that can be used to perform Check calls.
 // The user will pass in options which will be used to create a connection with otel and a tracerProvider retrieved from such connection.
 func NewClient(options Options) (Client, error) {
-	var timeout time.Duration
-	flowControlClient := flowcontrolgrpc.NewFlowControlServiceClient(options.ClientConn)
-
-	if options.CheckTimeout == 0 {
-		timeout = defaultRPCTimeout
-	} else {
-		timeout = options.CheckTimeout
-	}
-
-	exporter, err := otlptracegrpc.New(options.Ctx, otlptracegrpc.WithGRPCConn(options.ClientConn), otlptracegrpc.WithReconnectionPeriod(defaultGRPCReconnectionTime))
+	exporter, err := otlptracegrpc.New(context.Background(), otlptracegrpc.WithGRPCConn(options.ClientConn), otlptracegrpc.WithReconnectionPeriod(defaultGRPCReconnectionTime))
 	if err != nil {
 		return nil, err
 	}
@@ -71,40 +56,54 @@ func NewClient(options Options) (Client, error) {
 
 	otel.SetTracerProvider(tracerProvider)
 
-	tracer := tracerProvider.Tracer(LibraryName)
+	tracer := tracerProvider.Tracer(libraryName)
 
-	runtime.SetFinalizer(&exporter, exporter.Shutdown(options.Ctx))
-	return &apertureClient{
+	flowControlClient := flowcontrolgrpc.NewFlowControlServiceClient(options.ClientConn)
+
+	var timeout time.Duration
+	if options.CheckTimeout == 0 {
+		timeout = defaultRPCTimeout
+	} else {
+		timeout = options.CheckTimeout
+	}
+
+	apc := &apertureClient{
 		flowControlClient: flowControlClient,
 		tracer:            tracer,
 		timeout:           timeout,
-		tracerProvider:    tracerProvider,
-	}, nil
+	}
+	runtime.SetFinalizer(apc, exporter.Shutdown(context.Background()))
+	return apc, nil
 }
 
-// BeginFlow is a call performed on the FlowControlServiceClient, passing in the feature name and labels that the user wants to send to Aperture.
-// The user will receive a Flow interface return upon which they can perform End calls.
-// Thecall will still beging a flow but it will return a nil check response in case connection with flow control service is not established.
-func (apc *apertureClient) BeginFlow(ctx context.Context, feature string, labels map[string]string) (Flow, error) {
+// BeginFlow takes a feature name and labels that get passed to Aperture Agent via flowcontrolv1.Check call.
+// Return value is a Flow.
+// The call returns immediately in case connection with Aperture Agent is not established.
+// The default semantics are fail-to-wire. If BeginFlow fails, calling Flow.Accepted() on returned Flow returns as true.
+func (apc *apertureClient) BeginFlow(ctx context.Context, feature string, labelsExplicit map[string]string) (Flow, error) {
 	context, cancel := context.WithTimeout(ctx, apc.timeout)
 	defer cancel()
 
-	overiddenLabels := make(map[string]string)
+	labels := make(map[string]string)
 
-	newBaggage := baggage.FromContext(context)
-
-	labelsFromBaggage := newBaggage.Members()
-	for _, label := range labelsFromBaggage {
-		overiddenLabels[asString(label.Key())] = asString(label.Value())
+	// Inherit labels from baggage
+	baggageCtx := baggage.FromContext(context)
+	for _, member := range baggageCtx.Members() {
+		value, err := url.QueryUnescape(member.Value())
+		if err != nil {
+			continue
+		}
+		labels[member.Key()] = value
 	}
 
-	for key, value := range labels {
-		overiddenLabels[key] = value
+	// Explicit labels override baggage
+	for key, value := range labelsExplicit {
+		labels[key] = value
 	}
 
 	req := &flowcontrolgrpc.CheckRequest{
 		Feature: feature,
-		Labels:  overiddenLabels,
+		Labels:  labels,
 	}
 
 	var header metadata.MD
@@ -140,22 +139,12 @@ func newResource() (*resource.Resource, error) {
 		resourceDefault,
 		resource.NewWithAttributes(
 			resourceDefault.SchemaURL(),
-			semconv.ServiceNameKey.String(LibraryName),
-			semconv.ServiceVersionKey.String(LibraryVersion),
+			semconv.ServiceNameKey.String(libraryName),
+			semconv.ServiceVersionKey.String(libraryVersion),
 		),
 	)
 	if err != nil {
 		return nil, err
 	}
 	return r, nil
-}
-
-// asString returns the string representation of a key or value.
-func asString(val any) string {
-	bytes, err := json.Marshal(val)
-	if err != nil {
-		fmt.Println("Error occurred marshaling json: ", err)
-		return ""
-	}
-	return string(bytes)
 }
