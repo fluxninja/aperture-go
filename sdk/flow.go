@@ -3,7 +3,6 @@ package aperture
 import (
 	flowcontrolproto "go.buf.build/grpc/go/fluxninja/aperture/aperture/flowcontrol/v1"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -11,14 +10,14 @@ import (
 // The user can check the status of the check call, the response from the server and once the feature is executed, end the flow.
 type Flow interface {
 	Accepted() bool
-	End(statusCode Code, errDescription string)
+	End(statusCode Code)
 	CheckResponse() *flowcontrolproto.CheckResponse
 }
 
 type flow struct {
+	span          trace.Span
 	checkResponse *flowcontrolproto.CheckResponse
 	clientIP      string
-	span          trace.Span
 }
 
 // Accepted returns the state of the connection with the server.
@@ -39,18 +38,11 @@ func (f *flow) CheckResponse() *flowcontrolproto.CheckResponse {
 }
 
 // End is used to end the flow, the user will have to pass a status code and an error description which will define the state and result of the flow.
-func (f *flow) End(statusCode Code, errDescription string) {
+func (f *flow) End(statusCode Code) {
 	defer f.span.End()
-	if statusCode == OK {
-		f.span.SetStatus(codes.Ok, errDescription)
-	} else {
-		f.span.SetStatus(codes.Error, errDescription)
-	}
 	f.span.SetAttributes(
-		attribute.String(FeatureAddressLabel, f.clientIP),
-		attribute.String(MarshalledCheckResponseLabel, asString(f.checkResponse)),
+		attribute.String(featureStatusLabel, statusCode.String()),
+		attribute.String(featureIPLabel, f.clientIP),
+		attribute.String(checkResponseLabel, asString(f.checkResponse)),
 	)
-	if errDescription != "" {
-		f.span.SetAttributes(attribute.String(DecisionErrorReasonLabel, errDescription))
-	}
 }

@@ -85,10 +85,10 @@ func (a app) handleFeature(w http.ResponseWriter, r *http.Request) {
 		// Simulate work being done
 		time.Sleep(5 * time.Second)
 		// Need to call End on the Flow in order to provide telemetry to Aperture Agent for completing the control loop. The first argument catpures whether the feature captured by the Flow was successful or resulted in an error. The second argument is error message for further diagnosis.
-		flow.End(aperture.Ok, "")
+		flow.End(aperture.Ok)
 	} else {
 		// Flow has been rejected by Aperture Agent.
-		flow.End(aperture.Error, "flow rejected by aperture")
+		flow.End(aperture.Error)
 	}
 }
 
@@ -127,7 +127,7 @@ func grpcClient(ctx context.Context, address string) (*grpc.ClientConn, error) {
 		Backoff:           backoff.DefaultConfig,
 		MinConnectTimeout: time.Second * 10,
 	}))
-	grpcDialOptions = append(grpcDialOptions, grpc.WithUserAgent(aperture.LibraryName))
+	grpcDialOptions = append(grpcDialOptions, grpc.WithUserAgent("aperture-go"))
 	grpcDialOptions = append(grpcDialOptions, grpc.WithTransportCredentials(insecure.NewCredentials()))
 
 	return grpc.DialContext(ctx, address, grpcDialOptions...)

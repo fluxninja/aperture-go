@@ -20,9 +20,6 @@ import (
 	flowcontrolgrpc "go.buf.build/grpc/go/fluxninja/aperture/aperture/flowcontrol/v1"
 )
 
-// Code is an 32-bit representation of a status state.
-type Code uint32
-
 // Client is the interface that is provided to the user upon which they can perform Check calls for their service and eventually shut down in case of error.
 type Client interface {
 	BeginFlow(ctx context.Context, feature string, labels map[string]string) (Flow, error)
@@ -31,15 +28,15 @@ type Client interface {
 type apertureClient struct {
 	flowControlClient flowcontrolgrpc.FlowControlServiceClient
 	tracer            oteltrace.Tracer
-	timeout           time.Duration
 	tracerProvider    *trace.TracerProvider
+	timeout           time.Duration
 }
 
 // Options that the user can pass to Aperture in order to receive a new Client. ClientConn and Ctx are required.
 type Options struct {
+	Ctx          context.Context
 	ClientConn   *grpc.ClientConn
 	CheckTimeout time.Duration
-	Ctx          context.Context
 }
 
 // NewClient returns a new Client that can be used to perform Check calls.
@@ -71,7 +68,7 @@ func NewClient(options Options) (Client, error) {
 
 	otel.SetTracerProvider(tracerProvider)
 
-	tracer := tracerProvider.Tracer(LibraryName)
+	tracer := tracerProvider.Tracer(libraryName)
 
 	runtime.SetFinalizer(&exporter, exporter.Shutdown(options.Ctx))
 	return &apertureClient{
@@ -140,8 +137,8 @@ func newResource() (*resource.Resource, error) {
 		resourceDefault,
 		resource.NewWithAttributes(
 			resourceDefault.SchemaURL(),
-			semconv.ServiceNameKey.String(LibraryName),
-			semconv.ServiceVersionKey.String(LibraryVersion),
+			semconv.ServiceNameKey.String(libraryName),
+			semconv.ServiceVersionKey.String(libraryVersion),
 		),
 	)
 	if err != nil {
