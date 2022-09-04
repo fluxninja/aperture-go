@@ -7,11 +7,6 @@ import (
 	"time"
 
 	aperture "github.com/fluxninja/aperture-go/sdk"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
-	"go.opentelemetry.io/otel/sdk/resource"
-	"go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials/insecure"
@@ -23,23 +18,19 @@ type app struct {
 	apertureClient aperture.Client
 }
 
-// This is an example of how the Aperture client can be used in a Go application. However, multiple ways of using the client are possible.
+// This is an example of how the Aperture client can be used in a Go application.
 func Example() {
 	ctx := context.Background()
-	client, err := grpcClient(ctx, "localhost:50051")
+	client, err := grpcClient(ctx, "aperture-agent.aperture-system.svc.cluster.local:80")
 	if err != nil {
 		log.Fatalf("failed to create client: %v", err)
 	}
 
-	// Client can set a tracer provider for their purposes.
-	setExporterAndTracerProvider()
-
-	// checkTimeout is the time that the client will wait for a response from the Flow Control Service.
-	// if not provided, the default value value of 200 milliseconds will be used.
+	// checkTimeout is the time that the client will wait for a response from Aperture Agent.
+	// if not provided, the default value of 200 milliseconds will be used.
 	options := aperture.Options{
 		ClientConn:   client,
 		CheckTimeout: 200 * time.Millisecond,
-		Ctx:          ctx,
 	}
 
 	// initialize Aperture Client with the provided options.
@@ -58,7 +49,7 @@ func Example() {
 		apertureClient: apertureClient,
 	}
 
-	mux.HandleFunc("/feature", a.handleFeature)
+	mux.HandleFunc("/super-api", a.handleSuperAPI)
 
 	err = a.server.ListenAndServe()
 	if err != nil {
@@ -66,8 +57,8 @@ func Example() {
 	}
 }
 
-// handleFeature is a handler function where all the work from the user is executed.
-func (a app) handleFeature(w http.ResponseWriter, r *http.Request) {
+// handleSuperAPI handles http requests on /super-apis endpoint.
+func (a app) handleSuperAPI(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 
 	// do some business logic to collect labels
@@ -90,33 +81,6 @@ func (a app) handleFeature(w http.ResponseWriter, r *http.Request) {
 		// Flow has been rejected by Aperture Agent.
 		flow.End(aperture.Error)
 	}
-}
-
-func setExporterAndTracerProvider() {
-	exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
-	if err != nil {
-		log.Fatalf("exporter setup failed")
-		return
-	}
-	resourceDefault := resource.Default()
-	r, err := resource.Merge(
-		resourceDefault,
-		resource.NewWithAttributes(
-			resourceDefault.SchemaURL(),
-			semconv.ServiceNameKey.String("aperture-library-test-app"),
-			semconv.ServiceVersionKey.String("v0.1.0"),
-		),
-	)
-	if err != nil {
-		log.Fatalf("resource setup failed")
-		return
-	}
-	tp := trace.NewTracerProvider(
-		trace.WithBatcher(exporter),
-		trace.WithResource(r),
-	)
-
-	otel.SetTracerProvider(tp)
 }
 
 // grpcClient creates a new gRPC client that will be passed in order to initialize the Aperture client.

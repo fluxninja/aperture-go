@@ -28,13 +28,11 @@ type Client interface {
 type apertureClient struct {
 	flowControlClient flowcontrolgrpc.FlowControlServiceClient
 	tracer            oteltrace.Tracer
-	tracerProvider    *trace.TracerProvider
 	timeout           time.Duration
 }
 
 // Options that the user can pass to Aperture in order to receive a new Client. ClientConn and Ctx are required.
 type Options struct {
-	Ctx          context.Context
 	ClientConn   *grpc.ClientConn
 	CheckTimeout time.Duration
 }
@@ -42,16 +40,7 @@ type Options struct {
 // NewClient returns a new Client that can be used to perform Check calls.
 // The user will pass in options which will be used to create a connection with otel and a tracerProvider retrieved from such connection.
 func NewClient(options Options) (Client, error) {
-	var timeout time.Duration
-	flowControlClient := flowcontrolgrpc.NewFlowControlServiceClient(options.ClientConn)
-
-	if options.CheckTimeout == 0 {
-		timeout = defaultRPCTimeout
-	} else {
-		timeout = options.CheckTimeout
-	}
-
-	exporter, err := otlptracegrpc.New(options.Ctx, otlptracegrpc.WithGRPCConn(options.ClientConn), otlptracegrpc.WithReconnectionPeriod(defaultGRPCReconnectionTime))
+	exporter, err := otlptracegrpc.New(context.Background(), otlptracegrpc.WithGRPCConn(options.ClientConn), otlptracegrpc.WithReconnectionPeriod(defaultGRPCReconnectionTime))
 	if err != nil {
 		return nil, err
 	}
@@ -70,13 +59,22 @@ func NewClient(options Options) (Client, error) {
 
 	tracer := tracerProvider.Tracer(libraryName)
 
-	runtime.SetFinalizer(&exporter, exporter.Shutdown(options.Ctx))
-	return &apertureClient{
+	flowControlClient := flowcontrolgrpc.NewFlowControlServiceClient(options.ClientConn)
+
+	var timeout time.Duration
+	if options.CheckTimeout == 0 {
+		timeout = defaultRPCTimeout
+	} else {
+		timeout = options.CheckTimeout
+	}
+
+	apc := &apertureClient{
 		flowControlClient: flowControlClient,
 		tracer:            tracer,
 		timeout:           timeout,
-		tracerProvider:    tracerProvider,
-	}, nil
+	}
+	runtime.SetFinalizer(apc, exporter.Shutdown(context.Background()))
+	return apc, nil
 }
 
 // BeginFlow is a call performed on the FlowControlServiceClient, passing in the feature name and labels that the user wants to send to Aperture.
