@@ -83,8 +83,7 @@ jobs:
               pre-commit run --all-files
             else
               base_ref="$(git merge-base main $CIRCLE_SHA1)"
-              pre-commit run --all-files
-              #pre-commit run --from-ref "${base_ref}" --to-ref "$CIRCLE_SHA1"
+              pre-commit run --from-ref "${base_ref}" --to-ref "$CIRCLE_SHA1"
             fi
       - save_cache:
           name: Save go cache
@@ -144,10 +143,10 @@ commands:
       - restore_cache:
           name: Restore ASDF cache
           keys:
-            - aperture-asdf-cache-v7-{{ checksum "~/month" }}-<<
+            - aperture-go-asdf-cache-v1-{{ checksum "~/month" }}-<<
               parameters.cache_name >>-{{ checksum ".tool-versions" }}-{{
               checksum "go.mod" }}
-            - aperture-asdf-cache-v7-{{ checksum "~/month" }}-<<
+            - aperture-go-asdf-cache-v1-{{ checksum "~/month" }}-<<
               parameters.cache_name >>-
       - run:
           name: Install ASDF tools
@@ -164,7 +163,7 @@ commands:
       - save_cache:
           name: Save ASDF cache
           key:
-            aperture-asdf-cache-v7-{{ checksum "~/month" }}-<<
+            aperture-go-asdf-cache-v1-{{ checksum "~/month" }}-<<
             parameters.cache_name >>-{{ checksum ".tool-versions" }}-{{ checksum
             "go.mod" }}
           paths:
