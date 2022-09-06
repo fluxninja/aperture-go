@@ -15,12 +15,12 @@ const (
 
 	defaultGRPCReconnectionTime = 10 * time.Second
 
-	// status of the feature.
+	// Status of the feature.
 	featureStatusLabel = "aperture.feature_status"
 
 	// IP address of client hosting the feature.
 	featureIPLabel = "aperture.feature_ip"
 
-	// checkResponseLabel contains JSON encoded check response struct.
+	// CheckResponseLabel contains JSON encoded check response struct.
 	checkResponseLabel = "aperture.check_response"
 )

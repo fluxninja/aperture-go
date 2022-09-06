@@ -9,7 +9,7 @@ import (
 	"google.golang.org/protobuf/encoding/protojson"
 )
 
-// Flows is the interface that is returned to the user everytime a Check call through ApertureClient is made.
+// Flow is the interface that is returned to the user everytime a Check call through ApertureClient is made.
 // The user can check the status of the check call, the response from the server and once the feature is executed, end the flow.
 type Flow interface {
 	Accepted() bool
@@ -47,14 +47,14 @@ func (f *flow) End(statusCode Code) error {
 	}
 	f.ended = true
 
-	checkResponseJsonBytes, err := protojson.Marshal(f.checkResponse)
+	checkResponseJSONBytes, err := protojson.Marshal(f.checkResponse)
 	if err != nil {
 		return err
 	}
 	f.span.SetAttributes(
 		attribute.String(featureStatusLabel, statusCode.String()),
 		attribute.String(featureIPLabel, f.clientIP),
-		attribute.String(checkResponseLabel, string(checkResponseJsonBytes)),
+		attribute.String(checkResponseLabel, string(checkResponseJSONBytes)),
 	)
 	f.span.End()
 	return nil
