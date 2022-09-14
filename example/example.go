@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -20,17 +21,23 @@ type app struct {
 
 // This is an example of how the Aperture client can be used in a Go application.
 func main() {
+	agentHost := "aperture-agent.aperture-system.svc.cluster.local"
 	ctx := context.Background()
-	client, err := grpcClient(ctx, "aperture-agent.aperture-system.svc.cluster.local:8080")
+	flowControlClient, err := grpcClient(ctx, fmt.Sprintf("%s:8080", agentHost))
 	if err != nil {
-		log.Fatalf("failed to create client: %v", err)
+		log.Fatalf("failed to create flow control client: %v", err)
+	}
+	otlpExporterClient, err := grpcClient(ctx, fmt.Sprintf("%s:4317", agentHost))
+	if err != nil {
+		log.Fatalf("failed to create otlp exporter client: %v", err)
 	}
 
 	// checkTimeout is the time that the client will wait for a response from Aperture Agent.
 	// if not provided, the default value of 200 milliseconds will be used.
 	options := aperture.Options{
-		ClientConn:   client,
-		CheckTimeout: 200 * time.Millisecond,
+		FlowControlClientConn:  flowControlClient,
+		OTLPExporterClientConn: otlpExporterClient,
+		CheckTimeout:           200 * time.Millisecond,
 	}
 
 	// initialize Aperture Client with the provided options.
