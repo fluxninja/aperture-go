@@ -2,7 +2,9 @@ package aperture
 
 import (
 	"errors"
+	"fmt"
 
+	"github.com/fluxninja/aperture/pkg/otelcollector"
 	flowcontrolproto "go.buf.build/grpc/go/fluxninja/aperture/aperture/flowcontrol/v1"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -43,19 +45,23 @@ func (f *flow) CheckResponse() *flowcontrolproto.CheckResponse {
 // End is used to end the flow, the user will have to pass a status code and an error description which will define the state and result of the flow.
 func (f *flow) End(statusCode Code) error {
 	if f.ended {
+		fmt.Println("Flow already ended")
 		return errors.New("flow already ended")
 	}
 	f.ended = true
 
 	checkResponseJSONBytes, err := protojson.Marshal(f.checkResponse)
 	if err != nil {
+		fmt.Printf("Marshalling: %v\n", err)
 		return err
 	}
+	fmt.Printf("Ending flow: %v\n", []string{featureStatusLabel, featureIPLabel, checkResponseLabel})
 	f.span.SetAttributes(
-		attribute.String(featureStatusLabel, statusCode.String()),
-		attribute.String(featureIPLabel, f.clientIP),
-		attribute.String(checkResponseLabel, string(checkResponseJSONBytes)),
+		attribute.String(otelcollector.FeatureStatusLabel, statusCode.String()),
+		attribute.String(otelcollector.FeatureAddressLabel, f.clientIP),
+		attribute.String(otelcollector.MarshalledCheckResponseLabel, string(checkResponseJSONBytes)),
 	)
 	f.span.End()
+	fmt.Println("YOYOYO this is nil")
 	return nil
 }

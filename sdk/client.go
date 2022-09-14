@@ -2,8 +2,8 @@ package aperture
 
 import (
 	"context"
+	"fmt"
 	"net/url"
-	"runtime"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -41,6 +41,7 @@ type Options struct {
 // NewClient returns a new Client that can be used to perform Check calls.
 // The user will pass in options which will be used to create a connection with otel and a tracerProvider retrieved from such connection.
 func NewClient(options Options) (Client, error) {
+	fmt.Printf("OTLP TRACE: %#v\n", options.OTLPExporterClientConn)
 	exporter, err := otlptracegrpc.New(
 		context.Background(),
 		otlptracegrpc.WithGRPCConn(options.OTLPExporterClientConn),
@@ -78,7 +79,7 @@ func NewClient(options Options) (Client, error) {
 		tracer:            tracer,
 		timeout:           timeout,
 	}
-	runtime.SetFinalizer(apc, exporter.Shutdown(context.Background()))
+	//runtime.SetFinalizer(apc, exporter.Shutdown(context.Background()))
 	return apc, nil
 }
 

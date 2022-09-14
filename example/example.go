@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"time"
 
@@ -23,11 +23,11 @@ type app struct {
 func main() {
 	agentHost := "aperture-agent.aperture-system.svc.cluster.local"
 	ctx := context.Background()
-	flowControlClient, err := grpcClient(ctx, fmt.Sprintf("%s:8080", agentHost))
+	flowControlClient, err := grpcClient(ctx, net.JoinHostPort(agentHost, "8080"))
 	if err != nil {
 		log.Fatalf("failed to create flow control client: %v", err)
 	}
-	otlpExporterClient, err := grpcClient(ctx, fmt.Sprintf("%s:4317", agentHost))
+	otlpExporterClient, err := grpcClient(ctx, net.JoinHostPort(agentHost, "4317"))
 	if err != nil {
 		log.Fatalf("failed to create otlp exporter client: %v", err)
 	}
@@ -83,7 +83,8 @@ func (a app) handleSuperAPI(w http.ResponseWriter, r *http.Request) {
 	if flow.Accepted() {
 		// Simulate work being done
 		time.Sleep(5 * time.Second)
-		// Need to call End on the Flow in order to provide telemetry to Aperture Agent for completing the control loop. The first argument catpures whether the feature captured by the Flow was successful or resulted in an error. The second argument is error message for further diagnosis.
+		// Need to call End on the Flow in order to provide telemetry to Aperture Agent for completing the control loop.
+		// The argument captures whether the feature captured by the Flow was successful or resulted in an error.
 		flow.End(aperture.Ok)
 	} else {
 		// Flow has been rejected by Aperture Agent.
@@ -101,6 +102,7 @@ func grpcClient(ctx context.Context, address string) (*grpc.ClientConn, error) {
 	}))
 	grpcDialOptions = append(grpcDialOptions, grpc.WithUserAgent("aperture-go"))
 	grpcDialOptions = append(grpcDialOptions, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	grpcDialOptions = append(grpcDialOptions, grpc.WithBlock())
 
 	return grpc.DialContext(ctx, address, grpcDialOptions...)
 }
