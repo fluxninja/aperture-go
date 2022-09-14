@@ -1,4 +1,4 @@
-package main_test
+package main
 
 import (
 	"context"
@@ -19,9 +19,9 @@ type app struct {
 }
 
 // This is an example of how the Aperture client can be used in a Go application.
-func Example() {
+func main() {
 	ctx := context.Background()
-	client, err := grpcClient(ctx, "aperture-agent.aperture-system.svc.cluster.local:80")
+	client, err := grpcClient(ctx, "aperture-agent.aperture-system.svc.cluster.local:8080")
 	if err != nil {
 		log.Fatalf("failed to create client: %v", err)
 	}
@@ -69,6 +69,7 @@ func (a app) handleSuperAPI(w http.ResponseWriter, r *http.Request) {
 	flow, err := a.apertureClient.BeginFlow(ctx, "awesomeFeature", labels)
 	if err != nil {
 		log.Printf("Aperture flow control got error. Returned flow defaults to Allowed. flow.Accepted(): %t", flow.Accepted())
+		log.Printf("Error: %v\n", err)
 	}
 
 	// See whether flow was accepted by Aperture Agent.
