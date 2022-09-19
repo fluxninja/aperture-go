@@ -2,6 +2,7 @@ package aperture
 
 import (
 	"errors"
+	"time"
 
 	flowcontrolproto "go.buf.build/grpc/go/fluxninja/aperture/aperture/flowcontrol/v1"
 	"go.opentelemetry.io/otel/attribute"
@@ -68,6 +69,7 @@ func (f *flow) End(statusCode FlowStatus) error {
 		attribute.String(featureStatusLabel, statusCode.String()),
 		attribute.String(featureIPLabel, f.clientIP),
 		attribute.String(checkResponseLabel, string(checkResponseJSONBytes)),
+		attribute.Int64(flowStopTimestampLabel, time.Now().UnixNano()),
 	)
 	f.span.End()
 	return nil

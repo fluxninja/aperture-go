@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/baggage"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -58,7 +59,7 @@ func NewClient(options Options) (Client, error) {
 
 	tracer := tracerProvider.Tracer(libraryName)
 
-	flowControlClient := flowcontrolgrpc.NewFlowControlServiceClient(options.ClientConn)
+	fcClient := flowcontrolgrpc.NewFlowControlServiceClient(options.ClientConn)
 
 	var timeout time.Duration
 	if options.CheckTimeout == 0 {
@@ -67,20 +68,20 @@ func NewClient(options Options) (Client, error) {
 		timeout = options.CheckTimeout
 	}
 
-	apc := &apertureClient{
-		flowControlClient: flowControlClient,
+	c := &apertureClient{
+		flowControlClient: fcClient,
 		tracer:            tracer,
 		timeout:           timeout,
 	}
-	runtime.SetFinalizer(apc, exporter.Shutdown(context.Background()))
-	return apc, nil
+	runtime.SetFinalizer(c, exporter.Shutdown(context.Background()))
+	return c, nil
 }
 
 // StartFlow takes a feature name and labels that get passed to Aperture Agent via flowcontrolv1.Check call.
 // Return value is a Flow.
 // The call returns immediately in case connection with Aperture Agent is not established.
 // The default semantics are fail-to-wire. If StartFlow fails, calling Flow.Accepted() on returned Flow returns as true.
-func (c *apertureClient) StartFlow(ctx context.Context, feature string, labelsExplicit map[string]string) (Flow, error) {
+func (c *apertureClient) StartFlow(ctx context.Context, feature string, explicitLabels map[string]string) (Flow, error) {
 	context, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
@@ -97,7 +98,7 @@ func (c *apertureClient) StartFlow(ctx context.Context, feature string, labelsEx
 	}
 
 	// Explicit labels override baggage
-	for key, value := range labelsExplicit {
+	for key, value := range explicitLabels {
 		labels[key] = value
 	}
 
@@ -109,6 +110,10 @@ func (c *apertureClient) StartFlow(ctx context.Context, feature string, labelsEx
 	var header metadata.MD
 
 	_, span := c.tracer.Start(context, "Aperture Check")
+	span.SetAttributes(
+		attribute.Int64(flowStartTimestampLabel, time.Now().UnixNano()),
+		attribute.String(sourceLabel, "sdk"),
+	)
 
 	res, err := c.flowControlClient.Check(context, req, grpc.Header(&header))
 	ipValue := ""
@@ -116,6 +121,10 @@ func (c *apertureClient) StartFlow(ctx context.Context, feature string, labelsEx
 	if len(ipHeader) == 1 {
 		ipValue = ipHeader[0]
 	}
+
+	span.SetAttributes(
+		attribute.Int64(checkResponseTimestampLabel, time.Now().UnixNano()),
+	)
 
 	if err != nil {
 		return &flow{
