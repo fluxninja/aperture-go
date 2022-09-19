@@ -80,8 +80,8 @@ func NewClient(options Options) (Client, error) {
 // Return value is a Flow.
 // The call returns immediately in case connection with Aperture Agent is not established.
 // The default semantics are fail-to-wire. If StartFlow fails, calling Flow.Accepted() on returned Flow returns as true.
-func (apc *apertureClient) StartFlow(ctx context.Context, feature string, labelsExplicit map[string]string) (Flow, error) {
-	context, cancel := context.WithTimeout(ctx, apc.timeout)
+func (c *apertureClient) StartFlow(ctx context.Context, feature string, labelsExplicit map[string]string) (Flow, error) {
+	context, cancel := context.WithTimeout(ctx, c.timeout)
 	defer cancel()
 
 	labels := make(map[string]string)
@@ -108,9 +108,9 @@ func (apc *apertureClient) StartFlow(ctx context.Context, feature string, labels
 
 	var header metadata.MD
 
-	_, span := apc.tracer.Start(context, "Aperture Check")
+	_, span := c.tracer.Start(context, "Aperture Check")
 
-	res, err := apc.flowControlClient.Check(context, req, grpc.Header(&header))
+	res, err := c.flowControlClient.Check(context, req, grpc.Header(&header))
 	ipValue := ""
 	ipHeader := header.Get(clientIPHeaderName)
 	if len(ipHeader) == 1 {
