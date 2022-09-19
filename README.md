@@ -4,4 +4,4 @@
 
 ## Relevant Resources
 
-[Aperture GitHub](https://github.com/fluxninja/aperture)
+[FluxNinja Aperture](https://github.com/fluxninja/aperture)

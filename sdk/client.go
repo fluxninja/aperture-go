@@ -21,7 +21,7 @@ import (
 
 // Client is the interface that is provided to the user upon which they can perform Check calls for their service and eventually shut down in case of error.
 type Client interface {
-	BeginFlow(ctx context.Context, feature string, labels map[string]string) (Flow, error)
+	StartFlow(ctx context.Context, feature string, labels map[string]string) (Flow, error)
 }
 
 type apertureClient struct {
@@ -76,11 +76,11 @@ func NewClient(options Options) (Client, error) {
 	return apc, nil
 }
 
-// BeginFlow takes a feature name and labels that get passed to Aperture Agent via flowcontrolv1.Check call.
+// StartFlow takes a feature name and labels that get passed to Aperture Agent via flowcontrolv1.Check call.
 // Return value is a Flow.
 // The call returns immediately in case connection with Aperture Agent is not established.
-// The default semantics are fail-to-wire. If BeginFlow fails, calling Flow.Accepted() on returned Flow returns as true.
-func (apc *apertureClient) BeginFlow(ctx context.Context, feature string, labelsExplicit map[string]string) (Flow, error) {
+// The default semantics are fail-to-wire. If StartFlow fails, calling Flow.Accepted() on returned Flow returns as true.
+func (apc *apertureClient) StartFlow(ctx context.Context, feature string, labelsExplicit map[string]string) (Flow, error) {
 	context, cancel := context.WithTimeout(ctx, apc.timeout)
 	defer cancel()
 

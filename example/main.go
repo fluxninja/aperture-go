@@ -1,4 +1,4 @@
-package main_test
+package main
 
 import (
 	"context"
@@ -6,10 +6,11 @@ import (
 	"net/http"
 	"time"
 
-	aperture "github.com/fluxninja/aperture-go/sdk"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials/insecure"
+
+	aperture "github.com/fluxninja/aperture-go/sdk"
 )
 
 // app struct contains the server and the Aperture client.
@@ -18,8 +19,21 @@ type app struct {
 	apertureClient aperture.Client
 }
 
-// This is an example of how the Aperture client can be used in a Go application.
-func Example() {
+// grpcClient creates a new gRPC client that will be passed in order to initialize the Aperture client.
+func grpcClient(ctx context.Context, address string) (*grpc.ClientConn, error) {
+	// creating a grpc client connection is essential to allow the Aperture client to communicate with the Flow Control Service.
+	var grpcDialOptions []grpc.DialOption
+	grpcDialOptions = append(grpcDialOptions, grpc.WithConnectParams(grpc.ConnectParams{
+		Backoff:           backoff.DefaultConfig,
+		MinConnectTimeout: time.Second * 10,
+	}))
+	grpcDialOptions = append(grpcDialOptions, grpc.WithUserAgent("aperture-go"))
+	grpcDialOptions = append(grpcDialOptions, grpc.WithTransportCredentials(insecure.NewCredentials()))
+
+	return grpc.DialContext(ctx, address, grpcDialOptions...)
+}
+
+func main() {
 	ctx := context.Background()
 	client, err := grpcClient(ctx, "aperture-agent.aperture-system.svc.cluster.local:80")
 	if err != nil {
@@ -65,8 +79,8 @@ func (a app) handleSuperAPI(w http.ResponseWriter, r *http.Request) {
 	labels := map[string]string{
 		"user": "kenobi",
 	}
-	// BeginFlow performs a flowcontrolv1.Check call to Aperture Agent. It returns a Flow and an error if any.
-	flow, err := a.apertureClient.BeginFlow(ctx, "awesomeFeature", labels)
+	// StartFlow performs a flowcontrolv1.Check call to Aperture Agent. It returns a Flow and an error if any.
+	flow, err := a.apertureClient.StartFlow(ctx, "awesomeFeature", labels)
 	if err != nil {
 		log.Printf("Aperture flow control got error. Returned flow defaults to Allowed. flow.Accepted(): %t", flow.Accepted())
 	}
@@ -76,23 +90,9 @@ func (a app) handleSuperAPI(w http.ResponseWriter, r *http.Request) {
 		// Simulate work being done
 		time.Sleep(5 * time.Second)
 		// Need to call End on the Flow in order to provide telemetry to Aperture Agent for completing the control loop. The first argument catpures whether the feature captured by the Flow was successful or resulted in an error. The second argument is error message for further diagnosis.
-		flow.End(aperture.Ok)
+		_ = flow.End(aperture.OK)
 	} else {
 		// Flow has been rejected by Aperture Agent.
-		flow.End(aperture.Error)
+		_ = flow.End(aperture.Error)
 	}
-}
-
-// grpcClient creates a new gRPC client that will be passed in order to initialize the Aperture client.
-func grpcClient(ctx context.Context, address string) (*grpc.ClientConn, error) {
-	// creating a grpc client connection is essential to allow the Aperture client to communicate with the Flow Control Service.
-	var grpcDialOptions []grpc.DialOption
-	grpcDialOptions = append(grpcDialOptions, grpc.WithConnectParams(grpc.ConnectParams{
-		Backoff:           backoff.DefaultConfig,
-		MinConnectTimeout: time.Second * 10,
-	}))
-	grpcDialOptions = append(grpcDialOptions, grpc.WithUserAgent("aperture-go"))
-	grpcDialOptions = append(grpcDialOptions, grpc.WithTransportCredentials(insecure.NewCredentials()))
-
-	return grpc.DialContext(ctx, address, grpcDialOptions...)
 }
