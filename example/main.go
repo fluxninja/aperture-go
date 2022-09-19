@@ -40,10 +40,10 @@ func main() {
 		log.Fatalf("failed to create client: %v", err)
 	}
 
-	// checkTimeout is the time that the client will wait for a response from Aperture Agent.
-	// if not provided, the default value of 200 milliseconds will be used.
 	options := aperture.Options{
-		ClientConn:   client,
+		ClientConn: client,
+		// checkTimeout is the time that the client will wait for a response from Aperture Agent.
+		// if not provided, the default value of 200 milliseconds will be used.
 		CheckTimeout: 200 * time.Millisecond,
 	}
 
@@ -79,6 +79,7 @@ func (a app) handleSuperAPI(w http.ResponseWriter, r *http.Request) {
 	labels := map[string]string{
 		"user": "kenobi",
 	}
+
 	// StartFlow performs a flowcontrolv1.Check call to Aperture Agent. It returns a Flow and an error if any.
 	flow, err := a.apertureClient.StartFlow(ctx, "awesomeFeature", labels)
 	if err != nil {
