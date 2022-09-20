@@ -63,7 +63,7 @@ func main() {
 		apertureClient: apertureClient,
 	}
 
-	mux.HandleFunc("/super-api", a.handleSuperAPI)
+	mux.HandleFunc("/super", a.handleSuperAPI)
 
 	err = a.server.ListenAndServe()
 	if err != nil {
@@ -71,7 +71,7 @@ func main() {
 	}
 }
 
-// handleSuperAPI handles http requests on /super-apis endpoint.
+// handleSuperAPI handles HTTP requests on /super API endpoint.
 func (a app) handleSuperAPI(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 
