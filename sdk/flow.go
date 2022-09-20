@@ -43,7 +43,7 @@ func (f *flow) Accepted() bool {
 	if f.checkResponse == nil {
 		return true
 	}
-	if f.checkResponse.DecisionType == flowcontrolproto.DecisionType_DECISION_TYPE_ACCEPTED {
+	if f.checkResponse.DecisionType == flowcontrolproto.CheckResponse_DECISION_TYPE_ACCEPTED {
 		return true
 	}
 	return false

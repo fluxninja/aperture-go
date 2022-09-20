@@ -45,14 +45,14 @@ func NewClient(options Options) (Client, error) {
 		return nil, err
 	}
 
-	newResource, err := newResource()
+	r, err := newResource()
 	if err != nil {
 		return nil, err
 	}
 
 	tracerProvider := trace.NewTracerProvider(
 		trace.WithSpanProcessor(trace.NewBatchSpanProcessor(exporter)),
-		trace.WithResource(newResource),
+		trace.WithResource(r),
 	)
 
 	otel.SetTracerProvider(tracerProvider)
