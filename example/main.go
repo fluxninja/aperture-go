@@ -38,18 +38,18 @@ func main() {
 	const agentHost = "aperture-agent.aperture-system.svc.cluster.local"
 	ctx := context.Background()
 
-	apertureGRPCClient, err := grpcClient(ctx, net.JoinHostPort(agentHost, "8080"))
+	apertureAgentGRPCClient, err := grpcClient(ctx, net.JoinHostPort(agentHost, "8080"))
 	if err != nil {
 		log.Fatalf("failed to create flow control client: %v", err)
 	}
-	otlpExporterGRPCClient, err := grpcClient(ctx, net.JoinHostPort(agentHost, "4317"))
+	otlpCollectorGRPCClient, err := grpcClient(ctx, net.JoinHostPort(agentHost, "4317"))
 	if err != nil {
 		log.Fatalf("failed to create otlp exporter client: %v", err)
 	}
 
 	options := aperture.Options{
-		ApertureAgentGRPCClientConn: apertureGRPCClient,
-		OtelCollectorGRPCClientConn: otlpExporterGRPCClient,
+		ApertureAgentGRPCClientConn: apertureAgentGRPCClient,
+		OtelCollectorGRPCClientConn: otlpCollectorGRPCClient,
 		CheckTimeout:                200 * time.Millisecond,
 	}
 
