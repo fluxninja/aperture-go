@@ -90,7 +90,9 @@ func (a app) handleSuperAPI(w http.ResponseWriter, r *http.Request) {
 	if flow.Accepted() {
 		// Simulate work being done
 		time.Sleep(5 * time.Second)
-		// Need to call End on the Flow in order to provide telemetry to Aperture Agent for completing the control loop. The first argument catpures whether the feature captured by the Flow was successful or resulted in an error. The second argument is error message for further diagnosis.
+		// Need to call End() on the Flow in order to provide telemetry to Aperture Agent for completing the control loop.
+		// The first argument captures whether the feature captured by the Flow was successful or resulted in an error.
+		// The second argument is error message for further diagnosis.
 		_ = flow.End(aperture.OK)
 	} else {
 		// Flow has been rejected by Aperture Agent.
