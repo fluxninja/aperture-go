@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"net"
 	"net/http"
 	"time"
 
@@ -34,17 +35,22 @@ func grpcClient(ctx context.Context, address string) (*grpc.ClientConn, error) {
 }
 
 func main() {
+	const agentHost = "aperture-agent.aperture-system.svc.cluster.local"
 	ctx := context.Background()
-	client, err := grpcClient(ctx, "aperture-agent.aperture-system.svc.cluster.local:80")
+
+	apertureGRPCClient, err := grpcClient(ctx, net.JoinHostPort(agentHost, "8080"))
 	if err != nil {
-		log.Fatalf("failed to create client: %v", err)
+		log.Fatalf("failed to create flow control client: %v", err)
+	}
+	otlpExporterGRPCClient, err := grpcClient(ctx, net.JoinHostPort(agentHost, "4317"))
+	if err != nil {
+		log.Fatalf("failed to create otlp exporter client: %v", err)
 	}
 
 	options := aperture.Options{
-		ClientConn: client,
-		// checkTimeout is the time that the client will wait for a response from Aperture Agent.
-		// if not provided, the default value of 200 milliseconds will be used.
-		CheckTimeout: 200 * time.Millisecond,
+		ApertureAgentGRPCClientConn: apertureGRPCClient,
+		OtelCollectorGRPCClientConn: otlpExporterGRPCClient,
+		CheckTimeout:                200 * time.Millisecond,
 	}
 
 	// initialize Aperture Client with the provided options.

@@ -31,16 +31,22 @@ type apertureClient struct {
 	timeout           time.Duration
 }
 
-// Options that the user can pass to Aperture in order to receive a new Client. ClientConn and Ctx are required.
+// Options that the user can pass to Aperture in order to receive a new Client.
+// FlowControlClientConn and OTLPExporterClientConn are required.
 type Options struct {
-	ClientConn   *grpc.ClientConn
-	CheckTimeout time.Duration
+	ApertureAgentGRPCClientConn *grpc.ClientConn
+	OtelCollectorGRPCClientConn *grpc.ClientConn
+	CheckTimeout                time.Duration
 }
 
 // NewClient returns a new Client that can be used to perform Check calls.
 // The user will pass in options which will be used to create a connection with otel and a tracerProvider retrieved from such connection.
 func NewClient(options Options) (Client, error) {
-	exporter, err := otlptracegrpc.New(context.Background(), otlptracegrpc.WithGRPCConn(options.ClientConn), otlptracegrpc.WithReconnectionPeriod(defaultGRPCReconnectionTime))
+	exporter, err := otlptracegrpc.New(
+		context.Background(),
+		otlptracegrpc.WithGRPCConn(options.OtelCollectorGRPCClientConn),
+		otlptracegrpc.WithReconnectionPeriod(defaultGRPCReconnectionTime),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +65,7 @@ func NewClient(options Options) (Client, error) {
 
 	tracer := tracerProvider.Tracer(libraryName)
 
-	fcClient := flowcontrolgrpc.NewFlowControlServiceClient(options.ClientConn)
+	fcClient := flowcontrolgrpc.NewFlowControlServiceClient(options.ApertureAgentGRPCClientConn)
 
 	var timeout time.Duration
 	if options.CheckTimeout == 0 {
