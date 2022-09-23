@@ -35,7 +35,6 @@ type apertureClient struct {
 // FlowControlClientConn and OTLPExporterClientConn are required.
 type Options struct {
 	ApertureAgentGRPCClientConn *grpc.ClientConn
-	OtelCollectorGRPCClientConn *grpc.ClientConn
 	CheckTimeout                time.Duration
 }
 
@@ -44,7 +43,7 @@ type Options struct {
 func NewClient(options Options) (Client, error) {
 	exporter, err := otlptracegrpc.New(
 		context.Background(),
-		otlptracegrpc.WithGRPCConn(options.OtelCollectorGRPCClientConn),
+		otlptracegrpc.WithGRPCConn(options.ApertureAgentGRPCClientConn),
 		otlptracegrpc.WithReconnectionPeriod(defaultGRPCReconnectionTime),
 	)
 	if err != nil {

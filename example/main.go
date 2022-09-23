@@ -42,14 +42,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create flow control client: %v", err)
 	}
-	otlpCollectorGRPCClient, err := grpcClient(ctx, net.JoinHostPort(agentHost, "4317"))
-	if err != nil {
-		log.Fatalf("failed to create otlp exporter client: %v", err)
-	}
 
 	options := aperture.Options{
 		ApertureAgentGRPCClientConn: apertureAgentGRPCClient,
-		OtelCollectorGRPCClientConn: otlpCollectorGRPCClient,
 		CheckTimeout:                200 * time.Millisecond,
 	}
 
