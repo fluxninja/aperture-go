@@ -2,6 +2,8 @@
 
 `aperture-go` is an SDK to interact with Aperture Agent. It allows flow control functionality on fine-grained features inside service code.
 
+> This repository has been archived momentarily. No further development will occur and no PR will be accepted until it the archive status is removed.
+
 ## Usage
 
 ### ApertureClient Interface
