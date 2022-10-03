@@ -15,7 +15,6 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 	oteltrace "go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 
 	flowcontrolgrpc "go.buf.build/grpc/go/fluxninja/aperture/aperture/flowcontrol/v1"
 )
@@ -112,20 +111,13 @@ func (c *apertureClient) StartFlow(ctx context.Context, feature string, explicit
 		Labels:  labels,
 	}
 
-	var header metadata.MD
-
 	_, span := c.tracer.Start(context, "Aperture Check")
 	span.SetAttributes(
 		attribute.Int64(flowStartTimestampLabel, time.Now().UnixNano()),
 		attribute.String(sourceLabel, "sdk"),
 	)
 
-	res, err := c.flowControlClient.Check(context, req, grpc.Header(&header))
-	ipValue := ""
-	ipHeader := header.Get(clientIPHeaderName)
-	if len(ipHeader) == 1 {
-		ipValue = ipHeader[0]
-	}
+	res, err := c.flowControlClient.Check(context, req)
 
 	span.SetAttributes(
 		attribute.Int64(checkResponseTimestampLabel, time.Now().UnixNano()),
@@ -134,14 +126,12 @@ func (c *apertureClient) StartFlow(ctx context.Context, feature string, explicit
 	if err != nil {
 		return &flow{
 			checkResponse: nil,
-			clientIP:      ipValue,
 			span:          span,
 		}, err
 	}
 
 	return &flow{
 		checkResponse: res,
-		clientIP:      ipValue,
 		span:          span,
 	}, nil
 }

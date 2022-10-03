@@ -5,8 +5,6 @@ import (
 )
 
 const (
-	clientIPHeaderName = "client-ip"
-
 	// Library name and version can be used by the user to create a resource that connects to telemetry expoert.
 	libraryName    = "aperture-go"
 	libraryVersion = "v0.1.0"
@@ -20,8 +18,6 @@ const (
 	sourceLabel = "aperture.source"
 	// Label to hold status of the feature.
 	featureStatusLabel = "aperture.feature.status"
-	// Label to hold IP address of client hosting the feature.
-	featureIPLabel = "aperture.feature_ip"
 	// Label to hold JSON encoded check response struct.
 	checkResponseLabel = "aperture.check_response"
 	// Label to hold flow's start timestamp in Unix nanoseconds since Epoch.
