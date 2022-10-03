@@ -34,7 +34,6 @@ type Flow interface {
 type flow struct {
 	span          trace.Span
 	checkResponse *flowcontrolproto.CheckResponse
-	clientIP      string
 	ended         bool
 }
 
@@ -67,7 +66,6 @@ func (f *flow) End(statusCode FlowStatus) error {
 	}
 	f.span.SetAttributes(
 		attribute.String(featureStatusLabel, statusCode.String()),
-		attribute.String(featureIPLabel, f.clientIP),
 		attribute.String(checkResponseLabel, string(checkResponseJSONBytes)),
 		attribute.Int64(flowStopTimestampLabel, time.Now().UnixNano()),
 	)
