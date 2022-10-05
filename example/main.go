@@ -2,9 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"time"
 
 	"google.golang.org/grpc"
@@ -12,6 +14,12 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 
 	aperture "github.com/fluxninja/aperture-go/sdk"
+)
+
+const (
+	defaultAppPort   = "18080"
+	defaultAgentHost = "aperture-agent.aperture-agent.svc.cluster.local"
+	defaultAgentPort = "8089"
 )
 
 // app struct contains the server and the Aperture client.
@@ -35,10 +43,12 @@ func grpcClient(ctx context.Context, address string) (*grpc.ClientConn, error) {
 }
 
 func main() {
-	const agentHost = "aperture-agent.aperture-system.svc.cluster.local"
+	agentHost := getEnvOrDefault("FN_AGENT_HOST", defaultAgentHost)
+	agentPort := getEnvOrDefault("FN_AGENT_PORT", defaultAgentPort)
+
 	ctx := context.Background()
 
-	apertureAgentGRPCClient, err := grpcClient(ctx, net.JoinHostPort(agentHost, "8080"))
+	apertureAgentGRPCClient, err := grpcClient(ctx, net.JoinHostPort(agentHost, agentPort))
 	if err != nil {
 		log.Fatalf("failed to create flow control client: %v", err)
 	}
@@ -54,11 +64,12 @@ func main() {
 		log.Fatalf("failed to create client: %v", err)
 	}
 
+	appPort := getEnvOrDefault("FN_APP_PORT", defaultAppPort)
 	// Create a server with passing it the Aperture client.
 	mux := http.NewServeMux()
 	a := app{
 		server: &http.Server{
-			Addr:    ":8080",
+			Addr:    fmt.Sprintf(":%s", appPort),
 			Handler: mux,
 		},
 		apertureClient: apertureClient,
@@ -99,4 +110,12 @@ func (a app) handleSuperAPI(w http.ResponseWriter, r *http.Request) {
 		// Flow has been rejected by Aperture Agent.
 		_ = flow.End(aperture.Error)
 	}
+}
+
+func getEnvOrDefault(envName, defaultValue string) string {
+	val := os.Getenv(envName)
+	if envName == "" {
+		return defaultValue
+	}
+	return val
 }
