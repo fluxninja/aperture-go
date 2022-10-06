@@ -11,6 +11,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
+	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/credentials/insecure"
 
 	aperture "github.com/fluxninja/aperture-go/sdk"
@@ -24,8 +25,9 @@ const (
 
 // app struct contains the server and the Aperture client.
 type app struct {
-	server         *http.Server
-	apertureClient aperture.Client
+	server                  *http.Server
+	apertureClient          aperture.Client
+	apertureAgentGRPCClient *grpc.ClientConn
 }
 
 // grpcClient creates a new gRPC client that will be passed in order to initialize the Aperture client.
@@ -67,15 +69,17 @@ func main() {
 	appPort := getEnvOrDefault("FN_APP_PORT", defaultAppPort)
 	// Create a server with passing it the Aperture client.
 	mux := http.NewServeMux()
-	a := app{
+	a := &app{
 		server: &http.Server{
 			Addr:    fmt.Sprintf(":%s", appPort),
 			Handler: mux,
 		},
-		apertureClient: apertureClient,
+		apertureClient:          apertureClient,
+		apertureAgentGRPCClient: apertureAgentGRPCClient,
 	}
 
-	mux.HandleFunc("/super", a.handleSuperAPI)
+	mux.HandleFunc("/super", a.SuperHandler)
+	mux.HandleFunc("/connected", a.ConnectedHandler)
 
 	err = a.server.ListenAndServe()
 	if err != nil {
@@ -83,8 +87,8 @@ func main() {
 	}
 }
 
-// handleSuperAPI handles HTTP requests on /super API endpoint.
-func (a app) handleSuperAPI(w http.ResponseWriter, r *http.Request) {
+// SuperHandler handles HTTP requests on /super API endpoint.
+func (a *app) SuperHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := context.Background()
 
 	// do some business logic to collect labels
@@ -101,15 +105,29 @@ func (a app) handleSuperAPI(w http.ResponseWriter, r *http.Request) {
 	// See whether flow was accepted by Aperture Agent.
 	if flow.Accepted() {
 		// Simulate work being done
-		time.Sleep(5 * time.Second)
+		time.Sleep(2 * time.Second)
 		// Need to call End() on the Flow in order to provide telemetry to Aperture Agent for completing the control loop.
 		// The first argument captures whether the feature captured by the Flow was successful or resulted in an error.
 		// The second argument is error message for further diagnosis.
 		_ = flow.End(aperture.OK)
+		w.WriteHeader(http.StatusAccepted)
 	} else {
 		// Flow has been rejected by Aperture Agent.
 		_ = flow.End(aperture.Error)
+		w.WriteHeader(http.StatusForbidden)
 	}
+}
+
+// ConnectedHandler handles HTTP requests on /connected API endpoint.
+func (a *app) ConnectedHandler(w http.ResponseWriter, r *http.Request) {
+	a.apertureAgentGRPCClient.Connect()
+	state := a.apertureAgentGRPCClient.GetState()
+	_, _ = w.Write([]byte(state.String()))
+	if state != connectivity.Ready {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func getEnvOrDefault(envName, defaultValue string) string {
