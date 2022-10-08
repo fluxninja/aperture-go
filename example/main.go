@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net"
 	"net/http"
@@ -18,9 +17,9 @@ import (
 )
 
 const (
-	defaultAppPort   = "18080"
-	defaultAgentHost = "aperture-agent.aperture-agent.svc.cluster.local"
+	defaultAgentHost = "localhost"
 	defaultAgentPort = "8089"
+	defaultAppPort   = "8081"
 )
 
 // app struct contains the server and the Aperture client.
@@ -71,7 +70,7 @@ func main() {
 	mux := http.NewServeMux()
 	a := &app{
 		server: &http.Server{
-			Addr:    fmt.Sprintf(":%s", appPort),
+			Addr:    net.JoinHostPort("localhost", appPort),
 			Handler: mux,
 		},
 		apertureClient:          apertureClient,
@@ -132,7 +131,7 @@ func (a *app) ConnectedHandler(w http.ResponseWriter, r *http.Request) {
 
 func getEnvOrDefault(envName, defaultValue string) string {
 	val := os.Getenv(envName)
-	if envName == "" {
+	if val == "" {
 		return defaultValue
 	}
 	return val
