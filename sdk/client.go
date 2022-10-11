@@ -3,7 +3,6 @@ package aperture
 import (
 	"context"
 	"net/url"
-	"runtime"
 	"time"
 
 	"go.opentelemetry.io/otel"
@@ -77,7 +76,6 @@ func NewClient(options Options) (Client, error) {
 		tracer:            tracer,
 		timeout:           timeout,
 	}
-	runtime.SetFinalizer(c, exporter.Shutdown(context.Background()))
 	return c, nil
 }
 
