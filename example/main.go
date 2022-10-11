@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	defaultAgentHost = "aperture-agent.aperture-agent.svc.cluster.local"
+	defaultAgentHost = "localhost"
 	defaultAgentPort = "8089"
 	defaultAppPort   = "8080"
 )
