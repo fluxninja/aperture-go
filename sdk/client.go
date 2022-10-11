@@ -127,7 +127,7 @@ func (c *apertureClient) StartFlow(ctx context.Context, feature string, explicit
 	}
 
 	span.SetAttributes(
-		attribute.Int64(checkResponseTimestampLabel, time.Now().UnixNano()),
+		attribute.Int64(workloadStartTimestampLabel, time.Now().UnixNano()),
 	)
 
 	f.checkResponse = res
