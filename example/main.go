@@ -6,6 +6,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"google.golang.org/grpc"
@@ -19,7 +21,7 @@ import (
 const (
 	defaultAgentHost = "localhost"
 	defaultAgentPort = "8089"
-	defaultAppPort   = "8081"
+	defaultAppPort   = "8082"
 )
 
 // app struct contains the server and the Aperture client.
@@ -54,13 +56,13 @@ func main() {
 		log.Fatalf("failed to create flow control client: %v", err)
 	}
 
-	options := aperture.Options{
+	opts := aperture.Options{
 		ApertureAgentGRPCClientConn: apertureAgentGRPCClient,
 		CheckTimeout:                200 * time.Millisecond,
 	}
 
 	// initialize Aperture Client with the provided options.
-	apertureClient, err := aperture.NewClient(options)
+	apertureClient, err := aperture.NewClient(ctx, opts)
 	if err != nil {
 		log.Fatalf("failed to create client: %v", err)
 	}
@@ -80,9 +82,21 @@ func main() {
 	mux.HandleFunc("/super", a.SuperHandler)
 	mux.HandleFunc("/connected", a.ConnectedHandler)
 
-	err = a.server.ListenAndServe()
-	if err != nil {
-		log.Fatalf("error: %v", err)
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		if err := a.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Failed to start server: %+v", err)
+		}
+	}()
+
+	<-done
+	if err := apertureClient.Shutdown(ctx); err != nil {
+		log.Fatalf("Failed to shutdown aperture client: %+v", err)
+	}
+	if err := a.server.Shutdown(ctx); err != nil {
+		log.Fatalf("Failed to shutdown server: %+v", err)
 	}
 }
 
@@ -103,17 +117,17 @@ func (a *app) SuperHandler(w http.ResponseWriter, r *http.Request) {
 
 	// See whether flow was accepted by Aperture Agent.
 	if flow.Accepted() {
+		w.WriteHeader(http.StatusAccepted)
 		// Simulate work being done
 		time.Sleep(2 * time.Second)
 		// Need to call End() on the Flow in order to provide telemetry to Aperture Agent for completing the control loop.
 		// The first argument captures whether the feature captured by the Flow was successful or resulted in an error.
 		// The second argument is error message for further diagnosis.
 		_ = flow.End(aperture.OK)
-		w.WriteHeader(http.StatusAccepted)
 	} else {
+		w.WriteHeader(http.StatusForbidden)
 		// Flow has been rejected by Aperture Agent.
 		_ = flow.End(aperture.Error)
-		w.WriteHeader(http.StatusForbidden)
 	}
 }
 
@@ -121,12 +135,10 @@ func (a *app) SuperHandler(w http.ResponseWriter, r *http.Request) {
 func (a *app) ConnectedHandler(w http.ResponseWriter, r *http.Request) {
 	a.apertureAgentGRPCClient.Connect()
 	state := a.apertureAgentGRPCClient.GetState()
-	_, _ = w.Write([]byte(state.String()))
 	if state != connectivity.Ready {
 		w.WriteHeader(http.StatusServiceUnavailable)
-		return
 	}
-	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(state.String()))
 }
 
 func getEnvOrDefault(envName, defaultValue string) string {
