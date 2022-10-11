@@ -23,7 +23,7 @@ const (
 	// Label to hold flow's start timestamp in Unix nanoseconds since Epoch.
 	flowStartTimestampLabel = "aperture.flow_start_timestamp"
 	// Label to hold flow's stop timestamp in Unix nanoseconds since Epoch.
-	flowStopTimestampLabel = "aperture.flow_end_timestamp"
-	// Label to hold check response timestamp in Unix nanoseconds since Epoch.
-	checkResponseTimestampLabel = "aperture.check_response_timestamp"
+	flowEndTimestampLabel = "aperture.flow_end_timestamp"
+	// Label to hold workload start timestamp in Unix nanoseconds since Epoch.
+	workloadStartTimestampLabel = "aperture.workload_start_timestamp"
 )

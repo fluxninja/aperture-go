@@ -67,7 +67,7 @@ func (f *flow) End(statusCode FlowStatus) error {
 	f.span.SetAttributes(
 		attribute.String(featureStatusLabel, statusCode.String()),
 		attribute.String(checkResponseLabel, string(checkResponseJSONBytes)),
-		attribute.Int64(flowStopTimestampLabel, time.Now().UnixNano()),
+		attribute.Int64(flowEndTimestampLabel, time.Now().UnixNano()),
 	)
 	f.span.End()
 	return nil
