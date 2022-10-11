@@ -19,16 +19,16 @@ import (
 )
 
 const (
-	defaultAgentHost = "localhost"
+	defaultAgentHost = "aperture-agent.aperture-agent.svc.cluster.local"
 	defaultAgentPort = "8089"
-	defaultAppPort   = "8082"
+	defaultAppPort   = "8080"
 )
 
 // app struct contains the server and the Aperture client.
 type app struct {
-	server                  *http.Server
-	apertureClient          aperture.Client
-	apertureAgentGRPCClient *grpc.ClientConn
+	server         *http.Server
+	grpcClient     *grpc.ClientConn
+	apertureClient aperture.Client
 }
 
 // grpcClient creates a new gRPC client that will be passed in order to initialize the Aperture client.
@@ -75,8 +75,8 @@ func main() {
 			Addr:    net.JoinHostPort("localhost", appPort),
 			Handler: mux,
 		},
-		apertureClient:          apertureClient,
-		apertureAgentGRPCClient: apertureAgentGRPCClient,
+		apertureClient: apertureClient,
+		grpcClient:     apertureAgentGRPCClient,
 	}
 
 	mux.HandleFunc("/super", a.SuperHandler)
@@ -133,8 +133,8 @@ func (a *app) SuperHandler(w http.ResponseWriter, r *http.Request) {
 
 // ConnectedHandler handles HTTP requests on /connected API endpoint.
 func (a *app) ConnectedHandler(w http.ResponseWriter, r *http.Request) {
-	a.apertureAgentGRPCClient.Connect()
-	state := a.apertureAgentGRPCClient.GetState()
+	a.grpcClient.Connect()
+	state := a.grpcClient.GetState()
 	if state != connectivity.Ready {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}
