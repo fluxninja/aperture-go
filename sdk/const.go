@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	// Library name and version can be used by the user to create a resource that connects to telemetry expoert.
+	// Library name and version can be used by the user to create a resource that connects to telemetry exporter.
 	libraryName    = "aperture-go"
 	libraryVersion = "v0.1.0"
 

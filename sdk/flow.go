@@ -23,8 +23,8 @@ const (
 	Error
 )
 
-// Flow is the interface that is returned to the user everytime a Check call through ApertureClient is made.
-// The user can check the status of the check call, the response from the server and once the feature is executed, end the flow.
+// Flow is the interface that is returned to the user every time a Check call through ApertureClient is made.
+// The user can check the status of the check call, response from the server, and end the flow once the feature is executed.
 type Flow interface {
 	Accepted() bool
 	End(status FlowStatus) error

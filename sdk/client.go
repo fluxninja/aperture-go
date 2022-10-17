@@ -134,7 +134,7 @@ func (c *apertureClient) StartFlow(ctx context.Context, feature string, explicit
 	return f, nil
 }
 
-// Shutdown shuts down the apeture client.
+// Shutdown shuts down the aperture client.
 func (c *apertureClient) Shutdown(ctx context.Context) error {
 	return c.exporter.Shutdown(ctx)
 }
