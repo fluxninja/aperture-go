@@ -1,4 +1,10 @@
-# Go SDK for FluxNinja Aperture
+<p align="center">
+🚀 <b></b>Just launched v1 of <a href="https://blog.fluxninja.com/blog/aperture-v1-launch-2024/">managed rate limiting service</a></b>
+  <br/>Support us with your feedback and questions on <a href="https://www.producthunt.com/posts/fluxninja-aperture">Product Hunt</a> or <a href="https://discord.gg/U3N3fCZEPm">Discord</a>
+  <br/>
+</p>
+
+# Rate Limiting for Golang Apps
 
 The `aperture-go` SDK provides an easy way to integrate your go applications
 with [FluxNinja Aperture](https://github.com/fluxninja/aperture). It allows flow
